@@ -1,12 +1,12 @@
-# Unified source collection
+# Upstream research reference index
 
-The parent repository is the CGBJ fork of `DoubleGhosty/cool_fox`. The other requested projects are pinned Git submodules under `engines/`, so one recursive clone checks out all projects while preserving each upstream's own commit history.
+The root repository is the CGBJ fork of `DoubleGhosty/cool_fox`. The projects pinned under `engines/` are research references only: they let contributors inspect upstream behavior and tests while preserving upstream histories. They are not linked into the CGBJ runtime and are not mechanically combined.
 
 ## Main project
 
 - **CGBJ**: root workspace at `Zappybee/CGBJ`, forked from `DoubleGhosty/cool_fox`. Root commit baseline: `69718c00fb59ada793a9eb57ebdfb7b80b9c676a`.
 
-## Pinned engine submodules
+## Pinned research references
 
 | Directory | Upstream repository | License | Pinned commit |
 |---|---|---|---|
@@ -21,9 +21,9 @@ The parent repository is the CGBJ fork of `DoubleGhosty/cool_fox`. The other req
 
 `DoubleGhosty/cool_fox` is represented by the root CGBJ fork; it is not added a second time as a duplicate submodule.
 
-## Why they are separate submodules
+## Why the references are separate
 
-The VIctory-family projects share substantial code but have diverged in GPU memory, residency, descriptor, shader, and ray-tracing implementations. Keeping each variant pinned as its own submodule prevents a blind overlay from replacing one implementation with another before changes can be reconciled and tested.
+The VIctory-family projects share lineage but have diverged in GPU memory, residency, descriptor, shader, and ray-tracing implementations. Keeping each reference pinned makes it possible to compare behavior and test strategies without overlaying one source tree onto another. CGBJ's runtime changes must be independently designed and written.
 
 XCL is licensed GPL-2.0-only, while the CGBJ/VIctory-family code is GPL-3.0-or-later. XCL is therefore kept as a separate program and repository boundary; it is not copied into or linked with the GPL-3.0 runtime.
 
@@ -40,7 +40,7 @@ For an existing clone:
 git submodule update --init --recursive
 ```
 
-Build CGBJ from the repository root using its README. Build another engine from its own submodule directory using that project's README and pinned toolchain. The submodule registration is complete, but no claim is made that the eight independent engine workspaces have passed one combined build or runtime test.
+Build CGBJ from the repository root using its README. Build another engine from its own submodule directory using that project's README and pinned toolchain. The research references are pinned, but no claim is made that they have passed one combined build or runtime test. Only the root CGBJ workspace is the product being developed here.
 
 ## Data handling
 

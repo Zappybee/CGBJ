@@ -1,21 +1,31 @@
-# CGBJ — unified Xbox Series compatibility workspace
+# CGBJ — independent Xbox Series compatibility engine
 
-This repository keeps the CGBJ runtime at the root and pins the requested
-compatibility engines as Git submodules under `engines/`. Each upstream keeps
-its own history, build instructions, and licence.
+**One engine. One architecture. Independently written implementations.**
 
-Clone the complete workspace in one go:
+CGBJ is the product runtime at the repository root. The repositories under
+`engines/` are pinned research references used to study behavior, designs,
+trade-offs, and test cases. They are not separate runtime components and are
+not mechanically merged into CGBJ.
+
+The integration rule is: learn the engineering idea, design a CGBJ-native
+solution, write it independently, test it, measure it, and credit the source
+that inspired the research. No upstream source files or code blocks are to be
+transplanted. See [docs/RESEARCH_AND_CREDITS.md](docs/RESEARCH_AND_CREDITS.md).
+
+To also check out the pinned research references:
 
 ```powershell
 git clone --recurse-submodules https://github.com/Zappybee/CGBJ.git
 cd CGBJ
 ```
 
-For an existing clone, run `git submodule update --init --recursive`.
+For an existing clone, run `git submodule update --init --recursive`. The
+root CGBJ runtime does not link the submodules as dependencies. XCL is a
+separate GPL-2.0-only research reference and is not part of the GPL-3.0
+runtime.
 
-See [UNIFIED-SOURCES.md](UNIFIED-SOURCES.md) for the project map, pinned
-commit IDs, build boundaries, and licence separation. XCL is GPL-2.0-only
-and remains an independent submodule, not linked into the GPL-3.0 runtime.
+See [UNIFIED-SOURCES.md](UNIFIED-SOURCES.md) for the reference index,
+provenance, pinned revisions, and licence boundaries.
 
 # cool_fox
 

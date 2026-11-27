@@ -11,6 +11,11 @@ use std::ptr::NonNull;
 
 use victory_formats::texture;
 
+#[cfg(windows)]
+mod small;
+#[cfg(windows)]
+pub(crate) use small::SmallTextures;
+
 use crate::object::{
     self, E_INVALIDARG, E_OUTOFMEMORY, HEAP, HRESULT, Iid, Object, RESOURCE, S_OK, Table, This,
     guid,
@@ -2589,6 +2594,24 @@ fn host_texture_as(
     {
         crate::host::name(&t, || {
             format!("texture {}x{} f{} flags {:#x} (in a block)", d.width, d.height, d.format, d.flags)
+        });
+        return Some(t);
+    }
+    // A separate 64 KiB pool handles small read-only textures that are not
+    // eligible for the streamed-texture block pool above. The pool retains
+    // each backing heap through the lifetime of its placed resources.
+    if !reserved
+        && clear_value.is_none()
+        && let Some(t) = host.small_textures.place(
+            &host.device,
+            unsafe { &*(&raw const d).cast() },
+            D3D12_RESOURCE_STATES(
+                crate::host::legal_for(d.flags, crate::host::texture_state(state)) as i32,
+            ),
+        )
+    {
+        crate::host::name(&t, || {
+            format!("texture {}x{} f{} flags {:#x} (small heap)", d.width, d.height, d.format, d.flags)
         });
         return Some(t);
     }

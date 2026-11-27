@@ -106,6 +106,18 @@ const BACK: u64 = 256 << 10;
 /// pages there are in the first seconds (run light-4).
 const FAULTS: usize = 128;
 const FAULTS_ALL: usize = 2048;
+
+/// Total pages mapped from shader faults during one run. Override with
+/// VICTORY_BVH_FAULTS_ALL; zero disables fault-driven page admission.
+fn faults_all() -> usize {
+    static LIMIT: std::sync::OnceLock<usize> = std::sync::OnceLock::new();
+    *LIMIT.get_or_init(|| {
+        std::env::var("VICTORY_BVH_FAULTS_ALL")
+            .ok()
+            .and_then(|value| value.trim().parse().ok())
+            .unwrap_or(FAULTS_ALL)
+    })
+}
 /// Frames over which every page is looked at once.
 const SWEEP: usize = 128;
 
@@ -203,6 +215,10 @@ struct Stats {
     /// view, a structure named in upload memory.
     came: [u64; 4],
     micros: u64,
+    /// Faults that had no copy because a per-frame or run-wide budget was reached.
+    left: u64,
+    /// Distinct title pages observed through shader faults since the last report.
+    distinct: std::collections::HashSet<u64>,
 }
 
 // SAFETY: the mappings are of memory the struct owns; all access is under
@@ -675,11 +691,20 @@ impl Memory {
         }
         pages.sort_unstable();
         let mut made = 0;
+        let all = faults_all();
         for &page in &pages {
-            if made < FAULTS && self.faulted < FAULTS_ALL && self.copy_of(page).is_none() && self.map(page) {
-                made += 1;
-                self.faulted += 1;
-                self.bring(page, page + 1);
+            self.stats.distinct.insert(page);
+            if self.copy_of(page).is_some() {
+                continue;
+            }
+            if made < FAULTS && self.faulted < all {
+                if self.map(page) {
+                    made += 1;
+                    self.faulted += 1;
+                    self.bring(page, page + 1);
+                }
+            } else {
+                self.stats.left += 1;
             }
         }
         self.stats.faults += pages.len() as u64;
@@ -765,7 +790,8 @@ impl Memory {
             "title memory by address: {} pages ({} MB) in {} arenas, {} copies in all; per frame {:.0} dispatches that read, {:.0} that build, \
              {:.1} pages that had no copy, {:.1} pages turned down, {:.1} results brought back; {:.0} pages looked at, {:.1} KB changed, \
              {:.1} packed structures ({} there), {:.2} ms; {} windows; since the last line {} KB of packed structures came and {} of them went, \
-             and pages for constants {}, views written {}, others {}, upload memory {}, faults in all {}",
+             and pages for constants {}, views written {}, others {}, upload memory {}, faults in all {}; \
+             since the last line {} different pages faulted, {:.1} a frame left without a copy by the bounds ({} in all)",
             self.pages.len(),
             (self.pages.len() as u64 * PAGE) >> 20,
             self.arenas.len(),
@@ -787,7 +813,10 @@ impl Memory {
             s.came[1],
             s.came[2],
             s.came[3],
-            self.faulted
+            self.faulted,
+            s.distinct.len(),
+            s.left as f64 / frames,
+            faults_all()
         );
         self.stats.from = Some((now, self.frame));
     }

@@ -27,6 +27,31 @@ pub(super) mod intersect;
 
 type Why = &'static str;
 
+/// Clamp is an independent instruction modifier; it can appear before an
+/// offset suffix (for example, image_sample_cl_o).
+fn image_has_clamp(name: &str) -> bool {
+    name.split('_').any(|part| part == "cl")
+}
+
+/// Native image operations supported by this emitter. Keep the name table
+/// separate so uncommon suffix combinations can be regression-tested.
+fn image_operation(name: &str, pixel: bool) -> Option<(u32, bool)> {
+    Some(match name {
+        "image_sample" | "image_sample_o" | "image_sample_cl" | "image_sample_cl_o" => (60, true),
+        "image_sample_lz" | "image_sample_l" | "image_sample_lz_o" | "image_sample_l_o" => (62, true),
+        "image_sample_b" | "image_sample_b_cl" | "image_sample_b_o" | "image_sample_b_cl_o" => (61, true),
+        "image_sample_c_lz" | "image_sample_c_lz_o" => (65, true),
+        "image_sample_d" | "image_sample_d_cl" | "image_sample_d_o" | "image_sample_d_cl_o" => (63, true),
+        "image_get_lod" if pixel => (81, true),
+        // Implicit derivatives: pixel shaders only.
+        "image_sample_c" | "image_sample_c_cl" | "image_sample_c_o" | "image_sample_c_cl_o" if pixel => (64, true),
+        "image_gather4" | "image_gather4_lz" | "image_gather4_lz_o" | "image_gather4_l" | "image_gather4_l_o" => (73, true),
+        "image_load" | "image_load_mip" => (66, false),
+        "image_get_resinfo" => (72, false),
+        _ => return None,
+    })
+}
+
 /// How an interpolation evaluates an input channel.
 #[derive(Debug, Clone, Copy)]
 enum Eval {
@@ -11848,22 +11873,8 @@ impl<'a> Lower<'a> {
             self.end_guarded(at, &[]);
             return Ok(());
         }
-        let has_cl = name.ends_with("_cl");
-        let (op, sample) = match name {
-            "image_sample" | "image_sample_o" | "image_sample_cl" => (60, true),
-            "image_sample_lz" | "image_sample_l" | "image_sample_lz_o" => (62, true),
-            "image_sample_b" | "image_sample_b_cl" => (61, true),
-            "image_sample_c_lz" => (65, true),
-            "image_sample_d" | "image_sample_d_cl" => (63, true),
-            "image_get_lod" if self.s.pixel => (81, true),
-            // Implicit derivatives: pixel shaders only.
-            "image_sample_c" if self.s.pixel => (64, true),
-            "image_sample_c_cl" if self.s.pixel => (64, true),
-            "image_gather4" | "image_gather4_lz" | "image_gather4_lz_o" | "image_gather4_l" | "image_gather4_l_o" => (73, true),
-            "image_load" | "image_load_mip" => (66, false),
-            "image_get_resinfo" => (72, false),
-            _ => return Err(name),
-        };
+        let has_cl = image_has_clamp(name);
+        let (op, sample) = image_operation(name, self.s.pixel).ok_or(name)?;
         if op == 72 {
             // Width, height, depth or layers, levels (per dmask) of the level
             // in the first address: DXIL's dimensions; a channel DXIL leaves
@@ -12022,8 +12033,8 @@ impl<'a> Lower<'a> {
                 *o = zero;
             }
             if offset_word && offsets > 0 {
-                let w = addr_val(self, 0)?;
-                for (k, at) in [(0, 26), (1, 18)].into_iter().take(offsets.min(2)) {
+                let w = addr_u32(self, 0)?;
+                for (k, at) in [(0, 26), (1, 18), (2, 10)].into_iter().take(offsets.min(3)) {
                     // Bits at..at+5 sign-extended: shift up, then down.
                     let left = self.s.m.i32(at);
                     let t = self.s.m.bin(c, Bin::Shl, w, left);
@@ -12115,14 +12126,14 @@ impl<'a> Lower<'a> {
                         // constant word in range becomes immediates
                         // (upstream PR #634); anything else keeps the
                         // offsets computed above (upstream refuses those).
-                        let w = addr_val(self, 0)?;
+                        let w = addr_u32(self, 0)?;
                         if let Some(w) = self.s.m.int_value(w) {
                             let w = w as u32;
                             let field = |k: usize| {
                                 let x = (w >> (8 * k) & 0x3F) as i32;
                                 if x >= 32 { x - 64 } else { x }
                             };
-                            let n = offsets.min(2);
+                            let n = offsets.min(3);
                             if (0..n).all(|k| (-8..=7).contains(&field(k))) {
                                 for (k, o) in os.iter_mut().enumerate().take(n) {
                                     *o = self.s.m.i32(field(k) as u32);
@@ -12223,7 +12234,7 @@ impl<'a> Lower<'a> {
                     call_sample(self, name, op, &args, &mut gathered)
                 }
                 62 => {
-                    let lod = if name == "image_sample_l" {
+                    let lod = if matches!(name, "image_sample_l" | "image_sample_l_o") {
                         let x = addr_packed(self, coord_base, coords)?;
                         to_float(self, x)
                     } else {
@@ -13617,13 +13628,33 @@ fn interp_mode(kind: Barycentric) -> Option<u8> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Lowered, Numeric, Parts, buffer_format, half_shift, lower};
+    use super::{Lowered, Numeric, Parts, buffer_format, half_shift, image_has_clamp, image_operation, lower};
     use crate::native::{
         ComputeIo, HwStage, NativeProgram, ResourceType, RootParam, RootType, StageIo, UsedResource,
     };
     use crate::{io, ir, resource, structure};
 
     const S_ENDPGM: u32 = 0xBF81_0000;
+
+    #[test]
+    fn image_sampling_clamp_and_offset_suffixes_are_recognized() {
+        let cases = [
+            ("image_sample_cl_o", true, Some((60, true))),
+            ("image_sample_b_cl_o", true, Some((61, true))),
+            ("image_sample_d_cl_o", true, Some((63, true))),
+            ("image_sample_c_lz_o", true, Some((65, true))),
+            ("image_sample_c_cl_o", true, Some((64, true))),
+            ("image_sample_l_o", true, Some((62, true))),
+        ];
+        for (name, pixel, expected) in cases {
+            assert_eq!(image_operation(name, pixel), expected, "{name}");
+        }
+        assert!(image_has_clamp("image_sample_cl_o"));
+        assert!(image_has_clamp("image_sample_b_cl_o"));
+        assert!(!image_has_clamp("image_sample_l_o"));
+        assert_eq!(image_operation("image_sample_c_cl_o", false), None);
+    }
+
 
     /// A 128-thread group whose divergent region both reads and writes LDS. With that branch
     /// taken by both halves of a wave, the program lowers to wave 32 and the LDS sites meet
