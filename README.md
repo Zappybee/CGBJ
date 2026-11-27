@@ -1,3 +1,22 @@
+# CGBJ — unified Xbox Series compatibility workspace
+
+This repository keeps the CGBJ runtime at the root and pins the requested
+compatibility engines as Git submodules under `engines/`. Each upstream keeps
+its own history, build instructions, and licence.
+
+Clone the complete workspace in one go:
+
+```powershell
+git clone --recurse-submodules https://github.com/Zappybee/CGBJ.git
+cd CGBJ
+```
+
+For an existing clone, run `git submodule update --init --recursive`.
+
+See [UNIFIED-SOURCES.md](UNIFIED-SOURCES.md) for the project map, pinned
+commit IDs, build boundaries, and licence separation. XCL is GPL-2.0-only
+and remains an independent submodule, not linked into the GPL-3.0 runtime.
+
 # cool_fox
 
 [![CI](https://github.com/DoubleGhosty/cool_fox/actions/workflows/ci.yml/badge.svg)](https://github.com/DoubleGhosty/cool_fox/actions/workflows/ci.yml)

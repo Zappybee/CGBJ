@@ -1,0 +1,31 @@
+[submodule "engines/kelvaroq"]
+	path = engines/kelvaroq
+	url = https://github.com/stellarr-studio/kelvaroq.git
+
+[submodule "engines/xcl"]
+	path = engines/xcl
+	url = https://github.com/xcl-dev/xcl.git
+
+[submodule "engines/victory-7900xtx"]
+	path = engines/victory-7900xtx
+	url = https://github.com/avatarmanz/VIctory-7900XTX.git
+
+[submodule "engines/dexnom-victory"]
+	path = engines/dexnom-victory
+	url = https://github.com/DexNom/VIctory.git
+
+[submodule "engines/belobug-victory-amd"]
+	path = engines/belobug-victory-amd
+	url = https://github.com/Belobug/VIctory-Belobug-AMD.git
+
+[submodule "engines/fxceless-victory-fork"]
+	path = engines/fxceless-victory-fork
+	url = https://github.com/fxceless/victory-fork.git
+
+[submodule "engines/vitoriabr"]
+	path = engines/vitoriabr
+	url = https://github.com/uiliannn/VItoriaBr.git
+
+[submodule "engines/marvisak-victory"]
+	path = engines/marvisak-victory
+	url = https://github.com/Marvisak/VIctory.git

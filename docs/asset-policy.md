@@ -58,3 +58,13 @@ user's dump), `test_titles`, and `cache_dir` for everything derived
 A follow-up commit is not enough. Rewrite history
 (`git filter-repo --path <file> --invert-paths`), force-push, and have
 everyone re-clone.
+
+
+## External engine submodules
+
+The directories under `engines/` are Git submodules, pinned by the parent
+repository's `.gitmodules` file and gitlinks. A recursive clone fetches their
+exact source commits. Each submodule retains its own license and source-policy
+rules; the root CGBJ asset-policy check applies to the root repository tree.
+Do not add game assets, executable dumps, shader binaries, or runtime captures
+to the root repository or any submodule.
