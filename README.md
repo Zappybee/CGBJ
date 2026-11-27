@@ -1,3 +1,14 @@
+# CGBJ — unified Xbox Series compatibility monorepo
+
+This repository brings together the CGBJ runtime and the requested Xbox Series
+compatibility projects in one source repository. The active CGBJ workspace
+remains at the root. Independent engines and VIctory variants are preserved
+under [`engines/`](engines/) with their own manifests and licences.
+
+See [UNIFIED-SOURCES.md](UNIFIED-SOURCES.md) for the full project map, imported
+commit IDs, build boundaries, and licence separation. XCL remains an isolated
+GPL-2.0-only workspace; it is not merged into the GPL-3.0 runtime.
+
 # cool_fox
 
 [![CI](https://github.com/DoubleGhosty/cool_fox/actions/workflows/ci.yml/badge.svg)](https://github.com/DoubleGhosty/cool_fox/actions/workflows/ci.yml)
