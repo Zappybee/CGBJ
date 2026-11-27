@@ -60,12 +60,11 @@ A follow-up commit is not enough. Rewrite history
 everyone re-clone.
 
 
-## Monorepo source trees
+## External engine submodules
 
-The repository contains independent upstream source trees under `engines/`.
-They are preserved as separate projects and retain their own build manifests
-and license files. They are not silently linked into the root CGBJ workspace.
-The root policy accepts additional source formats used by those projects, but
-continues to reject binary game data, executable artifacts, shader dumps, and
-large diagnostic captures. Large source files are allowed only up to 2 MiB and
-remain subject to the text and embedded-data checks.
+The directories under `engines/` are Git submodules, pinned by the parent
+repository's `.gitmodules` file and gitlinks. A recursive clone fetches their
+exact source commits. Each submodule retains its own license and source-policy
+rules; the root CGBJ asset-policy check applies to the root repository tree.
+Do not add game assets, executable dumps, shader binaries, or runtime captures
+to the root repository or any submodule.
