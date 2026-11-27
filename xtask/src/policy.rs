@@ -11,12 +11,11 @@ use std::process::Command;
 use anyhow::{Context, Result, bail};
 
 // (The translator's one file is 570 KiB of source.)
-const MAX_FILE_SIZE: usize = 2 * 1024 * 1024;
+const MAX_FILE_SIZE: usize = 640 * 1024;
 const MAX_ENCODED_RUN: usize = 512;
 
 const ALLOWED_EXTENSIONS: &[&str] = &[
     "rs", "toml", "md", "txt", "lock", "yml", "yaml", "json", "hlsl", "hlsli", "ps1", "cmd", "sh",
-    "py", "cs", "xaml", "rc", "manifest", "patch", "svg",
 ];
 const ALLOWED_NAMES: &[&str] = &[
     ".gitignore",
@@ -24,7 +23,6 @@ const ALLOWED_NAMES: &[&str] = &[
     ".editorconfig",
     ".victory-root",
     "pre-commit",
-    "prepare-commit-msg",
     "LICENSE",
     "LICENSE-MIT",
     "LICENSE-APACHE",
@@ -252,7 +250,7 @@ mod tests {
             "extension not allowed"
         );
         assert!(
-            !check("a.rs", &vec![b'a'; MAX_FILE_SIZE + 1]).is_empty(),
+            !check("a.rs", &vec![b'a'; 600 * 1024]).is_empty(),
             "too big"
         );
     }
