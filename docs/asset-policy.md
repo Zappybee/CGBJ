@@ -58,3 +58,14 @@ user's dump), `test_titles`, and `cache_dir` for everything derived
 A follow-up commit is not enough. Rewrite history
 (`git filter-repo --path <file> --invert-paths`), force-push, and have
 everyone re-clone.
+
+
+## Monorepo source trees
+
+The repository contains independent upstream source trees under `engines/`.
+They are preserved as separate projects and retain their own build manifests
+and license files. They are not silently linked into the root CGBJ workspace.
+The root policy accepts additional source formats used by those projects, but
+continues to reject binary game data, executable artifacts, shader dumps, and
+large diagnostic captures. Large source files are allowed only up to 2 MiB and
+remain subject to the text and embedded-data checks.
